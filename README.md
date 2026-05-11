@@ -1,7 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="Skull Breaker Logo" width="300"/>
-
+![](https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTFyYXU1YXNmcTN3a290OG1hMnJuaWI3cXZqbGoxd284OThmYXB1YSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VWUeGlXiBrQsnmwTOv/giphy.gif)
 # 💀 Skull Breaker
 
 ### ESP32 Multi-Radio Wireless Security Research Device
@@ -65,7 +64,7 @@ BATTERY:    34    CHARGER:    35    BACKLIGHT:  13
 
 ---
 
-### 🔵 Bluetooth / BLE
+###  Bluetooth / BLE
 
 **Sniffers**
 - General BLE Scanner, BLE Analyzer, Car Skimmer Detector
@@ -79,7 +78,7 @@ BATTERY:    34    CHARGER:    35    BACKLIGHT:  13
 
 ---
 
-### 📶 2.4GHz (NRF24)
+###  2.4GHz (NRF24)
 
 **Sniffers**
 - Channel Scanner, Noise Analyzer, Protocol Scan
@@ -89,7 +88,7 @@ BATTERY:    34    CHARGER:    35    BACKLIGHT:  13
 
 ---
 
-### 📻 Sub-GHz RF (CC1101)
+###  Sub-GHz RF (CC1101)
 
 **Sniffers**
 - RF Scanner, RF Monitor, Signal Capture, Rolling Code Capture
@@ -100,7 +99,7 @@ BATTERY:    34    CHARGER:    35    BACKLIGHT:  13
 
 ---
 
-### ⚙️ System
+###  System
 - OTA wireless firmware updates
 - SD card file manager (rename, delete, text viewer)
 - LittleFS internal storage
@@ -145,12 +144,12 @@ Partition scheme: `partitions_orion_ota.csv` (custom, supports OTA)
 
 There are **50+ known bugs** across the system. This is v1 — it's a starting point, not a finished product. The big ones:
 
-### 🔧 Hardware / Boot
+###  Hardware / Boot
 - CC1101 (Radio 2) consistently fails to initialize at boot (`version=0x0`) — likely SPI timing or wiring issue
 - Secondary NRF24 (Radio 3) also fails to detect — may not be present on all builds
 - Radio 1 TX test fails at boot on some units
 
-### 📡 WiFi
+###  WiFi
 - Beacon sniffer shows garbled text (`Aa!@&#&bff`) when duplicate SSIDs are present
 - Several WiFi AP list screens show a stray debug line (random AP / BSSID / RSSI in small text at the bottom)
 - Hidden SSID app: unresponsive buttons on first load, slow, flickery, hard to exit
@@ -159,7 +158,7 @@ There are **50+ known bugs** across the system. This is v1 — it's a starting p
 - Signal Monitor shows no data
 - Probe Flood, Bad Message, and Quiet attacks have no observable effect
 
-### 🔵 BLE
+###  BLE
 - BLE Sniffer screen flickers during background scans
 - Flipper Zero detection only matches on device name — misses most Flippers
 - BLE Manufacturer Sniffer apps hang on exit and require a hardware reset
@@ -168,19 +167,19 @@ There are **50+ known bugs** across the system. This is v1 — it's a starting p
 - BLE Spoofer only works reliably with AirPods and PowerBeats profiles
 - Beacon Spam doesn't show up on mobile devices
 
-### 📶 2.4GHz
+###  2.4GHz
 - Scanner and Noise Analyzer graphs show no data (regression — was working)
 - Jammer UI flickers
 - Wrong back button icon in submenus
 
-### 📻 RF
+###  RF
 - Most RF sniffer screens flicker
 - Freq Sweep only renders outlines — full UI is broken (regression after RF updates)
 - RF Jammer signal is weak
 - Captured signal replay doesn't match original device output
 - Squelch Open produces no audio — and a previous fix attempt broke the entire RF subsystem
 
-### ⚙️ System
+###  System
 - Low memory warnings frequently block tool launches (`Mode guard blocked: Low memory`)
 - Icon cache not always released between mode switches
 - BLE stack requires warmup retries on init
@@ -193,7 +192,7 @@ There are **50+ known bugs** across the system. This is v1 — it's a starting p
 
 v2 is a full ground-up redesign — new hardware, new firmware architecture, all the v1 bugs squashed.
 
-### 🔩 New Hardware Platform
+###  New Hardware Platform
 
 The v2 board is a custom dual-layer perfboard build with a completely redesigned component layout:
 
@@ -260,7 +259,7 @@ The v2 board is a custom dual-layer perfboard build with a completely redesigned
 - Fix WiFi interface registration error on init
 - Modular firmware architecture — cleaner separation between radio drivers, UI, and app logic
 
-### 🛰️ New in v2
+###  New in v2
 
 - **GPS integration** — location tagging for captured signals and scan results
 - **Dual CC1101** — simultaneous sub-GHz monitoring and transmission
@@ -281,6 +280,6 @@ This device is intended for **authorized security research and educational use o
 
 <div align="center">
 
-*💀 Skull Breaker v1 — it's rough, it's real, and v2 is coming.*
+*💀 Skull Breaker v1 — v2 is coming.*
 
 </div>
