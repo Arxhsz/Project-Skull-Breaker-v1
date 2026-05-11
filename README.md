@@ -3,7 +3,7 @@
 ![](https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTFyYXU1YXNmcTN3a290OG1hMnJuaWI3cXZqbGoxd284OThmYXB1YSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VWUeGlXiBrQsnmwTOv/giphy.gif)
 # 💀 Skull Breaker
 
-### ESP32 Multi-Radio Wireless Security Research Device
+### ESP32 Multi-Radio Wireless Security "Research" Device
 
 [![Platform](https://img.shields.io/badge/platform-ESP32-blue?style=flat-square)](https://www.espressif.com/)
 [![Framework](https://img.shields.io/badge/framework-Arduino-teal?style=flat-square)](https://www.arduino.cc/)
