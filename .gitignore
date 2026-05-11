@@ -10,6 +10,9 @@
 # Kiro IDE
 .kiro/
 
+# Tools (local only)
+tools/
+
 # Python
 __pycache__/
 *.pyc
