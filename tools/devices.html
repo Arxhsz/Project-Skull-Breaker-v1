@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skull Breaker Device Map</title>
+<style>
+body { margin:0; font-family:Segoe UI, sans-serif; background:#101419; color:#eef4f8; }
+header { padding:24px; background:linear-gradient(135deg,#153040,#102018); border-bottom:1px solid #29404a; }
+h1 { margin:0 0 8px; font-size:26px; }
+.wrap { padding:18px; max-width:1180px; margin:auto; }
+input { width:100%; box-sizing:border-box; padding:13px 14px; border-radius:12px; border:1px solid #38515d; background:#172029; color:#fff; font-size:16px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; margin-top:18px; }
+.card { background:#151c23; border:1px solid #293844; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px #0006; }
+.photo { height:118px; background:#0b1015; display:flex; align-items:center; justify-content:center; color:#70818b; }
+.photo img { width:100%; height:100%; object-fit:cover; }
+.body { padding:14px; }
+.label { font-size:18px; font-weight:700; margin-bottom:4px; }
+.mac { font-family:Consolas, monospace; color:#87d8ff; }
+.pill { display:inline-block; margin:8px 6px 0 0; padding:4px 8px; border-radius:999px; background:#22313a; color:#bfd4df; font-size:12px; }
+.meta { margin-top:10px; color:#b9c7ce; font-size:13px; line-height:1.45; }
+</style>
+</head>
+<body>
+<header><h1>Skull Breaker Device Map</h1><div>20 devices loaded from saved scan CSV files.</div></header>
+<div class="wrap">
+<input id="q" placeholder="Search MAC, label, type, OUI, notes..." autofocus>
+<div id="grid" class="grid"></div>
+</div>
+<script>
+const devices = [{"mac": "42:16:33:DA:C9:5D", "oui": "42:16:33", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -82, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "43:D2:C2:9D:DE:36", "oui": "43:D2:C2", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -97, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "45:17:E7:01:9B:D6", "oui": "45:17:E7", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -87, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "45:A8:37:82:F2:79", "oui": "45:A8:37", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -94, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "49:BB:9C:81:29:22", "oui": "49:BB:9C", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -95, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "54:8C:ED:E0:AF:50", "oui": "54:8C:ED", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -87, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "57:11:51:D9:F1:E1", "oui": "57:11:51", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -91, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "5B:88:D0:5C:7C:94", "oui": "5B:88:D0", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -60, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "65:87:C5:2B:B1:BD", "oui": "65:87:C5", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -94, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "73:8E:4F:9E:ED:B1", "oui": "73:8E:4F", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -49, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "AirTag", "type_hint": "AirTag", "label": "AirTag", "kind": "ble", "image": "", "notes": ""}, {"mac": "75:C2:45:2A:5A:2E", "oui": "75:C2:45", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -92, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "78:C1:35:CE:64:D4", "oui": "78:C1:35", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -91, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "7F:94:20:36:43:A7", "oui": "7F:94:20", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -71, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Google BLE", "type_hint": "Google", "label": "Google BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "80:E1:26:77:DF:01", "oui": "80:E1:26", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -50, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Agoropis", "type_hint": "Flipper White", "label": "Agoropis", "kind": "ble", "image": "", "notes": ""}, {"mac": "C3:51:90:54:4A:25", "oui": "C3:51:90", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -86, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "CA:36:34:39:72:79", "oui": "CA:36:34", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -93, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Govee_H6052_7279", "type_hint": "", "label": "Govee_H6052_7279", "kind": "ble", "image": "", "notes": ""}, {"mac": "CC:36:34:39:38:6E", "oui": "CC:36:34", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -92, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Govee_H6052_386E", "type_hint": "", "label": "Govee_H6052_386E", "kind": "ble", "image": "", "notes": ""}, {"mac": "DD:99:80:C6:1D:5D", "oui": "DD:99:80", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -83, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Govee_H6098_1D5D", "type_hint": "", "label": "Govee_H6098_1D5D", "kind": "ble", "image": "", "notes": ""}, {"mac": "EC:27:EF:A2:5C:76", "oui": "EC:27:EF", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -92, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Apple BLE", "type_hint": "Apple", "label": "Apple BLE", "kind": "ble", "image": "", "notes": ""}, {"mac": "F4:DD:06:69:EE:4F", "oui": "F4:DD:06", "sources": ["ble"], "channels": [], "security": [], "seen_records": 1, "strongest_rssi": -88, "last_seen_ms": 0, "scan_files": ["ble_session_261547.csv"], "display_name": "Samsung BLE", "type_hint": "Samsung", "label": "Samsung BLE", "kind": "ble", "image": "", "notes": ""}];
+const grid = document.getElementById('grid');
+const q = document.getElementById('q');
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function draw() {
+  const needle = q.value.toLowerCase();
+  grid.innerHTML = '';
+  devices.filter(d => JSON.stringify(d).toLowerCase().includes(needle)).forEach(d => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const img = d.image ? `<img src="${esc(d.image)}" alt="">` : 'No image assigned';
+    card.innerHTML = `
+      <div class="photo">${img}</div>
+      <div class="body">
+        <div class="label">${esc(d.label)}</div>
+        <div class="mac">${esc(d.mac)}</div>
+        <span class="pill">${esc(d.kind || 'unknown')}</span>
+        <span class="pill">OUI ${esc(d.oui)}</span>
+        <span class="pill">RSSI ${esc(d.strongest_rssi)}</span>
+        <div class="meta">
+          Name: ${esc(d.display_name || '-')}<br>
+          Type: ${esc(d.type_hint || '-')}<br>
+          Channels: ${esc((d.channels || []).join(', ') || '-')}<br>
+          Security: ${esc((d.security || []).join(', ') || '-')}<br>
+          Seen records: ${esc(d.seen_records)}<br>
+          Notes: ${esc(d.notes || '-')}
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+q.addEventListener('input', draw);
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,835 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skull Breaker Companion</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{padding:10px 18px;background:linear-gradient(135deg,#0f2a3a,#0a1f10);border-bottom:1px solid #21262d;display:flex;align-items:center;gap:14px;flex-shrink:0}
+header h1{font-size:18px;font-weight:700;letter-spacing:.5px}
+#mode-display{font-size:12px;color:#8b949e;flex:1}
+#conn-status{display:flex;align-items:center;gap:8px;font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%;background:#3d4450;flex-shrink:0}
+.dot.on{background:#3fb950}
+#port-btn{padding:5px 13px;border-radius:7px;border:1px solid #30363d;background:#161b22;color:#e6edf3;cursor:pointer;font-size:12px}
+#port-btn:hover{background:#21262d}
+.layout{display:flex;flex:1;overflow:hidden}
+/* sidebar */
+.sidebar{width:200px;background:#0d1117;border-right:1px solid #21262d;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.status-bar{padding:10px;border-bottom:1px solid #21262d;font-size:12px}
+.srow{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.srow:last-child{margin:0}
+.badge{padding:1px 7px;border-radius:999px;font-size:11px;font-weight:600}
+.ok{background:#0d2818;color:#3fb950;border:1px solid #1a4a2a}
+.err{background:#2d1010;color:#f85149;border:1px solid #4a1a1a}
+.off{background:#1c2128;color:#8b949e;border:1px solid #30363d}
+.batt-row{display:flex;align-items:center;gap:6px;margin-top:6px}
+.batt-outer{width:36px;height:13px;border:1px solid #30363d;border-radius:3px;overflow:hidden}
+.batt-inner{height:100%;background:#3fb950;transition:width .3s}
+.batt-inner.low{background:#f85149}
+.batt-inner.mid{background:#d29922}
+nav{flex:1;overflow-y:auto;padding:6px}
+.ni{padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:#8b949e;display:flex;align-items:center;gap:7px;transition:all .12s;user-select:none}
+.ni:hover{background:#161b22;color:#e6edf3}
+.ni.active{background:#1f3a2a;color:#3fb950}
+/* dpad */
+.dpad{padding:10px;border-top:1px solid #21262d}
+.dpad-lbl{font-size:10px;color:#8b949e;text-align:center;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.dpad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;max-width:108px;margin:0 auto}
+.db{padding:7px;border-radius:6px;border:1px solid #30363d;background:#161b22;color:#e6edf3;cursor:pointer;font-size:13px;text-align:center;user-select:none;transition:background .08s;-webkit-tap-highlight-color:transparent}
+.db:active,.db.held{background:#1f3a2a;border-color:#3fb950;color:#3fb950}
+.db.ctr{background:#1a2a3a;border-color:#1f6feb}
+.db.ctr:active{background:#1f3a2a;border-color:#3fb950}
+/* main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid #21262d;background:#0d1117;flex-shrink:0;overflow-x:auto}
+.tab{padding:9px 16px;font-size:12px;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;white-space:nowrap;transition:all .12s;user-select:none}
+.tab:hover{color:#e6edf3}
+.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+.panels{flex:1;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;overflow-y:auto;padding:14px;display:none}
+.panel.active{display:block}
+/* cards */
+.card{background:#161b22;border:1px solid #21262d;border-radius:9px;padding:12px;margin-bottom:10px}
+.ctitle{font-size:13px;font-weight:600;margin-bottom:9px;color:#e6edf3}
+.sec{font-size:10px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.toolbar{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.mbadge{padding:3px 9px;border-radius:999px;background:#1f3a2a;color:#3fb950;font-size:11px;font-weight:600;border:1px solid #1a4a2a}
+.btn{padding:6px 13px;border-radius:7px;border:none;background:#1f6feb;color:#fff;cursor:pointer;font-size:12px;font-weight:600;transition:background .12s}
+.btn:hover{background:#388bfd}
+.btn.sec-btn{background:#21262d;border:1px solid #30363d;color:#e6edf3}
+.btn.sec-btn:hover{background:#2d333b}
+.btn.danger{background:#da3633}
+.btn.danger:hover{background:#f85149}
+/* device screen mirror */
+#screen-panel{background:#0d1117}
+.screen-wrap{display:flex;gap:14px;flex-wrap:wrap}
+.screen-box{background:#000;border:2px solid #30363d;border-radius:8px;padding:10px;font-family:Consolas,monospace;font-size:12px;min-width:260px;flex:1;max-width:380px}
+.screen-title{color:#58a6ff;font-size:11px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.screen-line{padding:2px 4px;border-radius:3px;color:#c9d1d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen-line.sel{background:#1f3a2a;color:#3fb950}
+.screen-line.dim{color:#484f58}
+.screen-info{flex:1;min-width:200px}
+/* device list */
+.dlist{display:flex;flex-direction:column;gap:3px}
+.drow{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:12px;transition:background .1s}
+.drow:hover{background:#1c2128}
+.drow.sel{background:#1f3a2a;border:1px solid #1a4a2a}
+.dname{flex:1;font-weight:500}
+.dmeta{color:#8b949e;font-size:11px}
+.rbar{width:44px;height:5px;border-radius:3px;background:#21262d;overflow:hidden;flex-shrink:0}
+.rfill{height:100%;border-radius:3px;background:#3fb950;transition:width .3s}
+.rfill.mid{background:#d29922}
+.rfill.weak{background:#f85149}
+/* detail grid */
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ditem{background:#0d1117;border-radius:5px;padding:7px 9px}
+.dkey{font-size:10px;color:#8b949e;margin-bottom:2px}
+.dval{font-size:12px;font-weight:500;font-family:Consolas,monospace;word-break:break-all}
+/* rf */
+.freq{font-size:26px;font-weight:700;font-family:Consolas,monospace;color:#58a6ff;text-align:center;padding:8px 0}
+.meter{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mlbl{font-size:11px;color:#8b949e;width:36px}
+.mbar{flex:1;height:8px;background:#21262d;border-radius:4px;overflow:hidden}
+.mfill{height:100%;border-radius:4px;transition:width .2s}
+.mval{font-size:11px;font-family:Consolas,monospace;width:52px;text-align:right}
+canvas{display:block;width:100%;border-radius:5px;background:#0d1117}
+/* files */
+.frow{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:6px;cursor:pointer;font-size:12px;transition:background .1s}
+.frow:hover{background:#1c2128}
+.frow.sel{background:#1f3a2a}
+.ficon{font-size:14px;width:18px}
+.fname{flex:1}
+.fsize{color:#8b949e;font-size:11px}
+.pathbar{font-family:Consolas,monospace;font-size:11px;color:#8b949e;padding:5px 9px;background:#0d1117;border-radius:5px;margin-bottom:7px;word-break:break-all}
+/* log */
+.logbox{font-family:Consolas,monospace;font-size:11px;background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:9px;overflow-y:auto;color:#8b949e;white-space:pre-wrap;word-break:break-all}
+/* empty */
+.empty{text-align:center;padding:30px;color:#8b949e;font-size:13px}
+/* no-serial overlay */
+#no-serial{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#8b949e;text-align:center;padding:40px;background:#0d1117;z-index:10}
+#no-serial h2{font-size:17px;color:#e6edf3}
+#no-serial p{font-size:13px;max-width:380px;line-height:1.6}
+.two-col{display:grid;grid-template-columns:1fr 300px;gap:12px}
+.two-col-eq{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.two-col,.two-col-eq{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>⬡ Skull Breaker</h1>
+  <div id="mode-display">Not connected</div>
+  <div id="conn-status">
+    <div class="dot" id="cdot"></div>
+    <span id="clbl">Disconnected</span>
+    <button id="port-btn" onclick="togglePort()">Connect Serial</button>
+  </div>
+</header>
+<div class="layout">
+  <div class="sidebar">
+    <div class="status-bar">
+      <div class="srow"><span>SD</span><span class="badge off" id="sd-b">—</span></div>
+      <div class="srow"><span>Radio 1</span><span class="badge off" id="r1-b">—</span></div>
+      <div class="srow"><span>Radio 2</span><span class="badge off" id="r2-b">—</span></div>
+      <div class="srow"><span>Radio 3</span><span class="badge off" id="r3-b">—</span></div>
+      <div class="batt-row">
+        <span id="bpct" style="font-size:12px">—%</span>
+        <div class="batt-outer"><div class="batt-inner" id="bfill" style="width:0%"></div></div>
+        <span id="bchg" style="font-size:11px;color:#8b949e"></span>
+      </div>
+    </div>
+    <nav>
+      <div class="ni active" id="nav-screen" onclick="showTab('screen')"><span>🖥️</span>Device Screen</div>
+      <div class="ni" id="nav-ble" onclick="showTab('ble')"><span>📡</span>Bluetooth</div>
+      <div class="ni" id="nav-wifi" onclick="showTab('wifi')"><span>📶</span>WiFi</div>
+      <div class="ni" id="nav-rf" onclick="showTab('rf')"><span>📻</span>RF</div>
+      <div class="ni" id="nav-files" onclick="showTab('files')"><span>📁</span>Files</div>
+      <div class="ni" id="nav-sys" onclick="showTab('sys')"><span>ℹ️</span>System</div>
+      <div class="ni" id="nav-log" onclick="showTab('log')"><span>🗒️</span>Serial Log</div>
+    </nav>
+    <div class="dpad">
+      <div class="dpad-lbl">D-Pad Control</div>
+      <div class="dpad-grid">
+        <div></div>
+        <div class="db" id="db-up"   onpointerdown="dbDown('UP')"   onpointerup="dbUp('UP')"   onpointerleave="dbUp('UP')">▲</div>
+        <div></div>
+        <div class="db" id="db-left" onpointerdown="dbDown('LEFT')" onpointerup="dbUp('LEFT')" onpointerleave="dbUp('LEFT')">◀</div>
+        <div class="db ctr" id="db-select" onpointerdown="dbDown('SELECT')" onpointerup="dbUp('SELECT')" onpointerleave="dbUp('SELECT')">●</div>
+        <div class="db" id="db-right" onpointerdown="dbDown('RIGHT')" onpointerup="dbUp('RIGHT')" onpointerleave="dbUp('RIGHT')">▶</div>
+        <div></div>
+        <div class="db" id="db-down" onpointerdown="dbDown('DOWN')" onpointerup="dbUp('DOWN')" onpointerleave="dbUp('DOWN')">▼</div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="tabs">
+      <div class="tab active" id="tab-screen" onclick="showTab('screen')">🖥️ Screen</div>
+      <div class="tab" id="tab-ble"    onclick="showTab('ble')">📡 BLE</div>
+      <div class="tab" id="tab-wifi"   onclick="showTab('wifi')">📶 WiFi</div>
+      <div class="tab" id="tab-rf"     onclick="showTab('rf')">📻 RF</div>
+      <div class="tab" id="tab-files"  onclick="showTab('files')">📁 Files</div>
+      <div class="tab" id="tab-sys"    onclick="showTab('sys')">ℹ️ System</div>
+      <div class="tab" id="tab-log"    onclick="showTab('log')">🗒️ Log</div>
+    </div>
+    <div class="panels">
+
+      <!-- DEVICE SCREEN PANEL -->
+      <div class="panel active" id="panel-screen">
+        <div class="sec">Live Device Screen</div>
+        <div class="screen-wrap">
+          <div class="screen-box" id="screen-box">
+            <div class="screen-title" id="screen-title">—</div>
+            <div id="screen-lines"><div class="screen-line dim">Waiting for device...</div></div>
+          </div>
+          <div class="screen-info">
+            <div class="card">
+              <div class="ctitle">Current State</div>
+              <div class="dgrid">
+                <div class="ditem"><div class="dkey">Screen</div><div class="dval" id="ss-screen">—</div></div>
+                <div class="ditem"><div class="dkey">Mode</div><div class="dval" id="ss-mode">—</div></div>
+                <div class="ditem"><div class="dkey">Title</div><div class="dval" id="ss-title">—</div></div>
+                <div class="ditem"><div class="dkey">Selected</div><div class="dval" id="ss-sel">—</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ctitle">Quick Actions</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <button class="btn" onclick="sendCmd('TAP UP')">▲ Up</button>
+                <button class="btn" onclick="sendCmd('TAP DOWN')">▼ Down</button>
+                <button class="btn" onclick="sendCmd('TAP LEFT')">◀ Left</button>
+                <button class="btn" onclick="sendCmd('TAP RIGHT')">▶ Right</button>
+                <button class="btn" onclick="sendCmd('TAP SELECT')" style="background:#238636">● Select</button>
+                <button class="btn sec-btn" onclick="sendCmd('SNAPSHOT')">↻ Refresh</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLE PANEL -->
+      <div class="panel" id="panel-ble">
+        <div class="toolbar">
+          <span class="sec" style="margin:0">Bluetooth</span>
+          <span class="mbadge" id="ble-mbadge">Idle</span>
+          <span id="ble-scanning" style="font-size:11px;color:#8b949e"></span>
+          <button class="btn" style="margin-left:auto" onclick="sendCmd('TAP SELECT')">Select</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP UP')">▲</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP DOWN')">▼</button>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="card">
+              <div class="ctitle">Devices <span id="ble-cnt" style="color:#8b949e;font-weight:400;font-size:12px"></span></div>
+              <div class="dlist" id="ble-list"><div class="empty">No devices — navigate to BLE Scanner on device</div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card" id="ble-detail-card" style="display:none">
+              <div class="ctitle">Device Detail</div>
+              <div class="dgrid" id="ble-detail-grid"></div>
+              <div style="margin-top:8px;display:flex;gap:6px">
+                <button class="btn sec-btn" onclick="sendCmd('TAP LEFT')">← Back</button>
+              </div>
+            </div>
+            <div class="card" id="ble-logger-card" style="display:none">
+              <div class="ctitle">Signal Logger</div>
+              <div id="ble-logger-info" style="font-size:12px;margin-bottom:8px;line-height:1.6"></div>
+              <canvas id="ble-logger-canvas" height="80"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WIFI PANEL -->
+      <div class="panel" id="panel-wifi">
+        <div class="toolbar">
+          <span class="sec" style="margin:0">WiFi</span>
+          <span class="mbadge" id="wifi-mbadge">Idle</span>
+          <span id="wifi-scanning" style="font-size:11px;color:#8b949e"></span>
+          <button class="btn" style="margin-left:auto" onclick="sendCmd('TAP SELECT')">Select</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP UP')">▲</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP DOWN')">▼</button>
+        </div>
+        <div class="two-col">
+          <div>
+            <div class="card">
+              <div class="ctitle">Networks <span id="wifi-cnt" style="color:#8b949e;font-weight:400;font-size:12px"></span></div>
+              <div class="dlist" id="wifi-list"><div class="empty">No networks — navigate to WiFi Scanner on device</div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card" id="wifi-detail-card" style="display:none">
+              <div class="ctitle">Network Detail</div>
+              <div class="dgrid" id="wifi-detail-grid"></div>
+              <div style="margin-top:8px"><button class="btn sec-btn" onclick="sendCmd('TAP LEFT')">← Back</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RF PANEL -->
+      <div class="panel" id="panel-rf">
+        <div class="toolbar">
+          <span class="sec" style="margin:0">RF Tools</span>
+          <span class="mbadge" id="rf-mbadge">Idle</span>
+          <button class="btn" style="margin-left:auto" onclick="sendCmd('TAP SELECT')">Select / Pause</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP LEFT')">← Back</button>
+        </div>
+        <div class="two-col-eq">
+          <div>
+            <div class="card" id="rf-idle-card"><div class="empty">Navigate to an RF tool on the device</div></div>
+            <div class="card" id="rf-sweep-card" style="display:none">
+              <div class="ctitle">Frequency Sweep</div>
+              <div class="freq" id="rf-sweep-freq">—</div>
+              <div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:#8b949e;margin-bottom:8px">
+                <span>Peak: <b id="rf-sweep-peak" style="color:#f0883e">—</b></span>
+                <span>Band: <b id="rf-sweep-band" style="color:#e6edf3">—</b></span>
+                <span id="rf-sweep-paused" style="color:#d29922"></span>
+              </div>
+              <canvas id="rf-sweep-canvas" height="80"></canvas>
+            </div>
+            <div class="card" id="rf-mon-card" style="display:none">
+              <div class="ctitle">RF Monitor</div>
+              <div class="freq" id="rf-mon-freq">—</div>
+              <div class="meter"><span class="mlbl">RSSI</span><div class="mbar"><div class="mfill" id="rf-mon-rssi-bar" style="width:0%;background:#3fb950"></div></div><span class="mval" id="rf-mon-rssi">—</span></div>
+              <div class="meter"><span class="mlbl">Avg</span><div class="mbar"><div class="mfill" id="rf-mon-avg-bar" style="width:0%;background:#58a6ff"></div></div><span class="mval" id="rf-mon-avg">—</span></div>
+              <div class="meter"><span class="mlbl">Peak</span><div class="mbar"><div class="mfill" id="rf-mon-peak-bar" style="width:0%;background:#f0883e"></div></div><span class="mval" id="rf-mon-peak">—</span></div>
+              <canvas id="rf-mon-canvas" height="70" style="margin-top:6px"></canvas>
+            </div>
+            <div class="card" id="rf-cap-card" style="display:none">
+              <div class="ctitle">Signal Capture</div>
+              <div class="freq" id="rf-cap-freq">—</div>
+              <div style="display:flex;gap:12px;justify-content:center;font-size:11px;color:#8b949e;margin-bottom:6px">
+                <span>RSSI: <b id="rf-cap-rssi" style="color:#e6edf3">—</b></span>
+                <span>Thresh: <b id="rf-cap-thresh" style="color:#e6edf3">—</b></span>
+                <span>Peaks/s: <b id="rf-cap-peaks" style="color:#f0883e">—</b></span>
+              </div>
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <span class="badge off" id="rf-cap-rec">Idle</span>
+                <span class="badge off" id="rf-cap-has">No Recording</span>
+              </div>
+              <canvas id="rf-cap-canvas" height="55"></canvas>
+            </div>
+            <div class="card" id="rf-tx-card" style="display:none">
+              <div class="ctitle">RF Transmit</div>
+              <div class="freq" id="rf-tx-freq">—</div>
+              <div class="dgrid" id="rf-tx-grid"></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="ctitle">RF Status</div>
+              <div id="rf-status" style="font-size:12px;color:#8b949e;line-height:1.7">Waiting for device...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILES PANEL -->
+      <div class="panel" id="panel-files">
+        <div class="toolbar">
+          <span class="sec" style="margin:0">File Manager</span>
+          <button class="btn" style="margin-left:auto" onclick="sendCmd('TAP SELECT')">Open / Select</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP LEFT')">← Back</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP UP')">▲</button>
+          <button class="btn sec-btn" onclick="sendCmd('TAP DOWN')">▼</button>
+        </div>
+        <div class="two-col-eq">
+          <div>
+            <div class="pathbar" id="file-path">/</div>
+            <div class="card">
+              <div class="dlist" id="file-list"><div class="empty">Navigate to Files on device</div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card" id="file-detail-card" style="display:none">
+              <div class="ctitle" id="file-detail-name">File</div>
+              <div class="logbox" id="file-detail-content" style="height:260px"></div>
+            </div>
+            <div class="card" id="file-rename-card" style="display:none">
+              <div class="ctitle">Rename</div>
+              <div id="file-rename-disp" style="font-family:Consolas,monospace;font-size:15px;padding:7px;background:#0d1117;border-radius:5px;letter-spacing:1px"></div>
+              <div style="font-size:11px;color:#8b949e;margin-top:5px" id="file-rename-case"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYSTEM PANEL -->
+      <div class="panel" id="panel-sys">
+        <div class="sec">System Information</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:12px">
+          <div class="card"><div class="dkey">Screen</div><div class="dval" id="si-screen">—</div></div>
+          <div class="card"><div class="dkey">Mode</div><div class="dval" id="si-mode">—</div></div>
+          <div class="card"><div class="dkey">SD Card</div><div class="dval" id="si-sd">—</div></div>
+          <div class="card"><div class="dkey">Radio 1</div><div class="dval" id="si-r1">—</div></div>
+          <div class="card"><div class="dkey">Radio 2</div><div class="dval" id="si-r2">—</div></div>
+          <div class="card"><div class="dkey">Radio 3</div><div class="dval" id="si-r3">—</div></div>
+          <div class="card"><div class="dkey">Battery</div><div class="dval" id="si-batt">—</div></div>
+          <div class="card"><div class="dkey">Charging</div><div class="dval" id="si-chg">—</div></div>
+        </div>
+        <div class="sec">Current Menu</div>
+        <div class="card"><div class="dlist" id="si-menu"><div class="empty">No menu active</div></div></div>
+        <div class="sec" style="margin-top:12px">Wireless Update</div>
+        <div class="card" id="si-wireless" style="display:none">
+          <div class="dgrid" id="si-wireless-grid"></div>
+        </div>
+      </div>
+
+      <!-- LOG PANEL -->
+      <div class="panel" id="panel-log">
+        <div class="toolbar">
+          <span class="sec" style="margin:0">Serial Log</span>
+          <button class="btn sec-btn" style="margin-left:auto" onclick="clearLog()">Clear</button>
+        </div>
+        <div class="logbox" id="serial-log" style="height:calc(100vh - 160px)"></div>
+      </div>
+    </div><!-- /panels -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+<script>
+// === Serial =================================================================
+let port=null, txWriter=null, readBuf='';
+
+async function togglePort() {
+  if(port){await closePort();return;}
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({baudRate:115200});
+    setConnected(true);
+    startReader();
+    await sendRaw('@CMP HELLO');
+  } catch(e) { port=null; setConnected(false); logLine('[error] '+e.message); }
+}
+
+async function startReader() {
+  const dec = new TextDecoderStream();
+  port.readable.pipeTo(dec.writable);
+  const reader = dec.readable.getReader();
+  try {
+    while(true) {
+      const {value,done} = await reader.read();
+      if(done) break;
+      readBuf += value;
+      let nl;
+      while((nl=readBuf.indexOf('\n'))>=0){
+        const line=readBuf.slice(0,nl).trim();
+        readBuf=readBuf.slice(nl+1);
+        if(line) handleLine(line);
+      }
+    }
+  } catch(e) { logLine('[rx] '+e.message); }
+  setConnected(false); port=null; txWriter=null;
+}
+
+async function closePort() {
+  try{if(txWriter){await txWriter.close();txWriter=null;}}catch(e){}
+  try{if(port){await port.close();port=null;}}catch(e){}
+  setConnected(false);
+}
+
+async function sendRaw(msg) {
+  if(!port||!port.writable) return;
+  if(!txWriter){
+    const enc = new TextEncoderStream();
+    enc.readable.pipeTo(port.writable,{preventClose:true});
+    txWriter = enc.writable.getWriter();
+  }
+  try { await txWriter.write(msg+'\n'); } catch(e) { logLine('[tx] '+e.message); }
+}
+
+function sendCmd(cmd){ sendRaw('@CMP '+cmd); }
+function tap(b){ sendCmd('TAP '+b); }
+function dbDown(b){ sendCmd('DOWN '+b); const el=document.getElementById('db-'+b.toLowerCase()); if(el) el.classList.add('held'); }
+function dbUp(b){   sendCmd('UP '+b);   const el=document.getElementById('db-'+b.toLowerCase()); if(el) el.classList.remove('held'); }
+
+// === UI =====================================================================
+function setConnected(v){
+  document.getElementById('cdot').className='dot'+(v?' on':'');
+  document.getElementById('clbl').textContent=v?'Connected':'Disconnected';
+  document.getElementById('port-btn').textContent=v?'Disconnect':'Connect Serial';
+  document.getElementById('no-serial').style.display=v?'none':'flex';
+}
+
+let activeTab='screen';
+function showTab(name){
+  activeTab=name;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  const p=document.getElementById('panel-'+name);
+  const t=document.getElementById('tab-'+name);
+  const n=document.getElementById('nav-'+name);
+  if(p)p.classList.add('active');
+  if(t)t.classList.add('active');
+  if(n)n.classList.add('active');
+}
+
+// === Log ====================================================================
+let logLines=[];
+function logLine(line){
+  logLines.push(line);
+  if(logLines.length>600) logLines.shift();
+  const el=document.getElementById('serial-log');
+  if(el){el.textContent=logLines.join('\n');el.scrollTop=el.scrollHeight;}
+}
+function clearLog(){ logLines=[]; const el=document.getElementById('serial-log'); if(el) el.textContent=''; }
+
+// === Snapshot ===============================================================
+function handleLine(line){
+  logLine(line);
+  if(!line.startsWith('@CMP ')) return;
+  try{
+    const snap=JSON.parse(line.slice(5));
+    if(snap.type==='snapshot') applySnapshot(snap);
+  }catch(e){}
+}
+
+function applySnapshot(s){
+  updateStatus(s);
+  updateScreenPanel(s);
+  updateBle(s);
+  updateWifi(s);
+  updateRf(s);
+  updateFiles(s);
+  updateSys(s);
+  const md=document.getElementById('mode-display');
+  if(md) md.textContent=(s.title||s.mode||'');
+}
+
+// === Status =================================================================
+function updateStatus(s){
+  const st=s.status||{};
+  setBadge('sd-b', st.sd==='mounted'?'ok':st.sd==='error'?'err':'off', st.sd||'--');
+  setBadge('r1-b', st.r1?'ok':'err', st.r1?'OK':'Fail');
+  setBadge('r2-b', st.r2?'ok':'err', st.r2?'OK':'Fail');
+  setBadge('r3-b', st.r3?'ok':'err', st.r3?'OK':'Fail');
+  const pct=st.batteryPct??0;
+  setText('bpct',pct+'%');
+  const f=document.getElementById('bfill');
+  if(f){f.style.width=pct+'%';f.className='batt-inner'+(pct<20?' low':pct<50?' mid':'');}
+  setText('bchg',st.batteryCharging?'⚡':'');
+}
+
+// === Screen Mirror ==========================================================
+function updateScreenPanel(s){
+  setText('ss-screen',s.screen||'--');
+  setText('ss-mode',s.mode||'--');
+  setText('ss-title',s.title||'--');
+  const scr=s.screen||'';
+  const titleEl=document.getElementById('screen-title');
+  if(titleEl) titleEl.textContent=s.title||s.mode||scr;
+  const linesEl=document.getElementById('screen-lines');
+  if(!linesEl) return;
+  let rows=[], sel=-1;
+  if(scr==='MAIN'&&s.main){
+    sel=s.main.selected||0;
+    rows=(s.main.items||[]).map((item,i)=>({text:(i===sel?'> ':' ')+item,active:i===sel}));
+    setText('ss-sel',(s.main.items||[])[sel]||'--');
+  } else if(scr==='SUBMENU'&&s.menu){
+    sel=s.menu.selected||0;
+    rows=(s.menu.items||[]).map((item,i)=>{
+      const val=s.menu.values?s.menu.values[i]:'';
+      return {text:(i===sel?'> ':' ')+item+(val?' : '+val:''),active:i===sel};
+    });
+    setText('ss-sel',(s.menu.items||[])[sel]||'--');
+  } else if(scr==='TOOL'&&s.tool&&s.tool.type==='device_list'){
+    sel=s.tool.selected||0;
+    rows=(s.tool.items||[]).map((item,i)=>{
+      const abs=(s.tool.scroll||0)+i;
+      return {text:(abs===sel?'> ':' ')+item.name+(item.rssi?' '+item.rssi+'dBm':''),active:abs===sel};
+    });
+  } else if(scr==='TOOL'&&s.tool&&s.tool.type==='wifi_list'){
+    sel=s.tool.selected||0;
+    rows=(s.tool.items||[]).map((item,i)=>{
+      const abs=(s.tool.scroll||0)+i;
+      return {text:(abs===sel?'> ':' ')+item.name+(item.meta?' ['+item.meta+']':''),active:abs===sel};
+    });
+  } else if(scr==='TOOL'&&s.tool&&s.tool.type==='logger'){
+    rows=[
+      {text:'Signal Logger',active:false},
+      {text:'Target: '+(s.tool.target||'--'),active:false},
+      {text:'RSSI:   '+(s.tool.rssi||'--')+' dBm',active:true},
+      {text:'Rate:   '+(s.tool.rateMs||'--')+'ms',active:false},
+    ];
+  } else if(scr==='TOOL'&&s.tool){
+    rows=[
+      {text:s.tool.name||s.mode||'Tool',active:false},
+      {text:'Freq: '+(s.tool.freqMHz||s.tool.tunedMHz||'--')+' MHz',active:true},
+      {text:'RSSI: '+(s.tool.rssi||'--')+' dBm',active:false},
+    ];
+  } else if((scr==='FILE_MANAGER'||scr==='FILE_DETAIL'||scr==='FILE_DELETE'||scr==='FILE_RENAME')&&s.files){
+    sel=s.files.selected||0;
+    rows=(s.files.items||[]).map((item,i)=>{
+      const abs=(s.files.scroll||0)+i;
+      return {text:(abs===sel?'> ':' ')+(item.dir?'[D] ':' ')+item.name,active:abs===sel};
+    });
+  } else if(scr==='BLE_DETAIL'&&s.detailInfo){
+    const d=s.detailInfo;
+    rows=[
+      {text:'BLE Device',active:false},
+      {text:'Name: '+(d.name||'--'),active:true},
+      {text:'MAC:  '+(d.mac||'--'),active:false},
+      {text:'RSSI: '+(d.rssi||'--')+' dBm',active:false},
+    ];
+  } else if(scr==='WIFI_DETAIL'&&s.detailInfo){
+    const d=s.detailInfo;
+    rows=[
+      {text:'WiFi Network',active:false},
+      {text:'SSID: '+(d.name||'--'),active:true},
+      {text:'MAC:  '+(d.mac||'--'),active:false},
+      {text:'CH:   '+(d.channel||'--'),active:false},
+      {text:'Sec:  '+(d.security||'--'),active:false},
+      {text:'RSSI: '+(d.rssi||'--')+' dBm',active:false},
+    ];
+  } else {
+    rows=[{text:s.title||s.mode||scr||'--',active:true}];
+  }
+  linesEl.innerHTML=rows.map(r=>{
+    const t=r.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return '<div class="screen-line'+(r.active?' sel':'')+'">'+t+'</div>';
+  }).join('');
+}
+
+// === BLE ====================================================================
+function updateBle(s){
+  const mode=s.mode||'';
+  setText('ble-mbadge',mode);
+  if(s.tool&&s.tool.type==='device_list'){
+    const t=s.tool;
+    setText('ble-cnt','('+(t.total||0)+')');
+    setText('ble-scanning',t.scanning?'Scanning...':'');
+    const list=document.getElementById('ble-list');
+    if(list){
+      if(!t.items||!t.items.length){list.innerHTML='<div class="empty">No devices found</div>';}
+      else{
+        list.innerHTML='';
+        t.items.forEach((item,i)=>{
+          const abs=(t.scroll||0)+i;
+          const row=document.createElement('div');
+          row.className='drow'+(abs===t.selected?' sel':'');
+          const pct=item.rssi?Math.max(0,Math.min(100,(item.rssi+100)*2)):0;
+          const cls=pct>60?'':pct>30?' mid':' weak';
+          row.innerHTML='<div class="dname">'+esc(item.name)+'</div>'
+            +'<div class="rbar"><div class="rfill'+cls+'" style="width:'+pct+'%"></div></div>'
+            +'<div class="dmeta">'+(item.rssi?item.rssi+' dBm':'')+'</div>';
+          list.appendChild(row);
+        });
+      }
+    }
+  }
+  if(s.tool&&s.tool.type==='logger'){
+    show('ble-logger-card'); hide('ble-detail-card');
+    const t=s.tool;
+    setHTML('ble-logger-info','<b>'+esc(t.target)+'</b> <span style="color:#8b949e;font-family:monospace">'+esc(t.mac)+'</span><br>RSSI: <b style="color:'+rssiColor(t.rssi)+'">'+t.rssi+' dBm</b>  Rate: '+t.rateMs+'ms');
+    drawGraph('ble-logger-canvas',t.graph||[],-100,-20,'#3fb950');
+  } else { hide('ble-logger-card'); }
+  if(s.screen==='BLE_DETAIL'&&s.detailInfo){
+    show('ble-detail-card');
+    const d=s.detailInfo;
+    setHTML('ble-detail-grid',di('Name',d.name)+di('MAC',d.mac)+di('RSSI',(d.rssi||'--')+' dBm'));
+  } else if(!s.tool||s.tool.type!=='logger'){ hide('ble-detail-card'); }
+}
+
+// === WiFi ===================================================================
+function updateWifi(s){
+  setText('wifi-mbadge',s.mode||'');
+  if(s.tool&&s.tool.type==='wifi_list'){
+    const t=s.tool;
+    setText('wifi-cnt','('+(t.total||0)+')');
+    setText('wifi-scanning',t.scanning?'Scanning...':'');
+    const list=document.getElementById('wifi-list');
+    if(list){
+      if(!t.items||!t.items.length){list.innerHTML='<div class="empty">No networks found</div>';}
+      else{
+        list.innerHTML='';
+        t.items.forEach((item,i)=>{
+          const abs=(t.scroll||0)+i;
+          const row=document.createElement('div');
+          row.className='drow'+(abs===t.selected?' sel':'');
+          const pct=item.rssi?Math.max(0,Math.min(100,(item.rssi+100)*2)):0;
+          const cls=pct>60?'':pct>30?' mid':' weak';
+          row.innerHTML='<div class="dname">'+esc(item.name)+'</div>'
+            +'<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#1a2a3a;color:#58a6ff">'+esc(item.meta||'')+'</span>'
+            +'<div class="rbar"><div class="rfill'+cls+'" style="width:'+pct+'%"></div></div>'
+            +'<div class="dmeta">'+(item.rssi?item.rssi+' dBm':'')+'</div>';
+          list.appendChild(row);
+        });
+      }
+    }
+  }
+  if(s.screen==='WIFI_DETAIL'&&s.detailInfo){
+    show('wifi-detail-card');
+    const d=s.detailInfo;
+    setHTML('wifi-detail-grid',di('SSID',d.name)+di('BSSID',d.mac)+di('Channel',d.channel)+di('Security',d.security)+di('RSSI',(d.rssi||'--')+' dBm'));
+  } else { hide('wifi-detail-card'); }
+}
+
+// === RF =====================================================================
+function updateRf(s){
+  setText('rf-mbadge',s.mode||'');
+  ['rf-idle-card','rf-sweep-card','rf-mon-card','rf-cap-card','rf-tx-card'].forEach(id=>hide(id));
+  if(!s.tool||s.screen!=='TOOL'){show('rf-idle-card');setText('rf-status','Mode: '+(s.mode||'Idle'));return;}
+  const t=s.tool;
+  if(t.type==='rf_sweep'){
+    show('rf-sweep-card');
+    setText('rf-sweep-freq',(t.tunedMHz||'--')+' MHz');
+    setText('rf-sweep-peak',(t.peakMHz||'--')+' MHz ('+( t.peakRssi||'--')+' dBm)');
+    setText('rf-sweep-band',t.band||'--');
+    setText('rf-sweep-paused',t.paused?'Paused':'');
+    drawBarGraph('rf-sweep-canvas',t.levels||[],'#58a6ff');
+    setText('rf-status','Band: '+(t.band||'--')+'\nTuned: '+(t.tunedMHz||'--')+' MHz\nPeak: '+(t.peakMHz||'--')+' MHz @ '+(t.peakRssi||'--')+' dBm');
+  } else if(t.type==='rf_monitor'){
+    show('rf-mon-card');
+    setText('rf-mon-freq',(t.freqMHz||'--')+' MHz');
+    setMeter('rf-mon-rssi','rf-mon-rssi-bar',t.rssi,-120,-20,'#3fb950');
+    setMeter('rf-mon-avg','rf-mon-avg-bar',t.avg,-120,-20,'#58a6ff');
+    setMeter('rf-mon-peak','rf-mon-peak-bar',t.peak,-120,-20,'#f0883e');
+    drawGraph('rf-mon-canvas',t.graph||[],-120,-20,'#58a6ff');
+    setText('rf-status','Freq: '+(t.freqMHz||'--')+' MHz\nRSSI: '+(t.rssi||'--')+' dBm\nAvg: '+(t.avg||'--')+' dBm\nPeak: '+(t.peak||'--')+' dBm');
+  } else if(t.type==='rf_capture'){
+    show('rf-cap-card');
+    setText('rf-cap-freq',(t.freqMHz||'--')+' MHz');
+    setText('rf-cap-rssi',(t.rssi||'--')+' dBm');
+    setText('rf-cap-thresh',t.threshold||'--');
+    setText('rf-cap-peaks',t.peakPerSec||0);
+    setBadge('rf-cap-rec',t.recording?'err':'off',t.recording?'REC':'Idle');
+    setBadge('rf-cap-has',t.hasRecording?'ok':'off',t.hasRecording?'Has Recording':'No Recording');
+    drawBarGraph('rf-cap-canvas',t.graph||[],'#f85149');
+    setText('rf-status','Freq: '+(t.freqMHz||'--')+' MHz\nThreshold: '+(t.threshold||'--')+'\nRecording: '+(t.recording?'Yes':'No'));
+  } else if(t.type==='rf_transmit'){
+    show('rf-tx-card');
+    setText('rf-tx-freq',(t.freqMHz||'--')+' MHz');
+    setHTML('rf-tx-grid',di('Status',t.status)+di('Active',t.active?'Yes':'No')+di('Count',t.count)+di('Source',t.source)+di('File Freq',(t.fileFreqMHz||'--')+' MHz')+di('Loaded',t.loaded?'Yes':'No'));
+    setText('rf-status','Freq: '+(t.freqMHz||'--')+' MHz\nStatus: '+(t.status||'--')+'\nCount: '+(t.count||0));
+  } else {
+    show('rf-idle-card');
+    setText('rf-status','Mode: '+(s.mode||'--'));
+  }
+}
+
+// === Files ==================================================================
+function updateFiles(s){
+  if(!s.files) return;
+  const f=s.files;
+  setText('file-path',f.path||'/');
+  const list=document.getElementById('file-list');
+  if(list){
+    if(!f.items||!f.items.length){list.innerHTML='<div class="empty">Empty</div>';}
+    else{
+      list.innerHTML='';
+      f.items.forEach((item,i)=>{
+        const abs=(f.scroll||0)+i;
+        const row=document.createElement('div');
+        row.className='frow'+(abs===f.selected?' sel':'');
+        row.innerHTML='<span class="ficon">'+(item.dir?'&#128193;':'&#128196;')+'</span>'
+          +'<span class="fname">'+esc(item.name)+(item.marked?' ✓':'')+'</span>'
+          +'<span class="fsize">'+(item.dir?'':fmtSize(item.size))+'</span>';
+        list.appendChild(row);
+      });
+    }
+  }
+  if(s.detail){show('file-detail-card');setText('file-detail-name',s.detail.path||'File');setText('file-detail-content',s.detail.saved||'');}
+  else{hide('file-detail-card');}
+  if(s.rename){
+    show('file-rename-card');
+    const d=s.rename.draft||'',c=s.rename.cursor||0;
+    setText('file-rename-disp',d.slice(0,c)+'|'+d.slice(c));
+    setText('file-rename-case',s.rename.uppercase?'UPPERCASE':'lowercase');
+  } else { hide('file-rename-card'); }
+}
+
+// === System =================================================================
+function updateSys(s){
+  const st=s.status||{};
+  setText('si-screen',s.screen||'--');
+  setText('si-mode',s.mode||'--');
+  setText('si-sd',st.sd||'--');
+  setText('si-r1',st.r1?'OK':'Fail');
+  setText('si-r2',st.r2?'OK':'Fail');
+  setText('si-r3',st.r3?'OK':'Fail');
+  setText('si-batt',(st.batteryPct!=null?st.batteryPct:'--')+'%');
+  setText('si-chg',st.batteryCharging?'Yes ⚡':'No');
+  const ml=document.getElementById('si-menu');
+  if(ml&&s.menu){
+    ml.innerHTML='';
+    (s.menu.items||[]).forEach((item,i)=>{
+      const row=document.createElement('div');
+      row.className='drow'+(i===s.menu.selected?' sel':'');
+      const val=s.menu.values?s.menu.values[i]:'';
+      row.innerHTML='<span class="dname">'+esc(item)+'</span>'+(val?'<span class="dmeta">'+esc(val)+'</span>':'');
+      ml.appendChild(row);
+    });
+  }
+  if(s.wireless){
+    show('si-wireless');
+    setHTML('si-wireless-grid',di('Status',s.wireless.status)+di('SSID',s.wireless.ssid)+di('IP',s.wireless.ip));
+  } else { hide('si-wireless'); }
+}
+
+// === Helpers ================================================================
+function esc(s){return String(s!=null?s:'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function di(k,v){return '<div class="ditem"><div class="dkey">'+esc(k)+'</div><div class="dval">'+esc(String(v!=null?v:'--'))+'</div></div>';}
+function rssiColor(r){return r>-60?'#3fb950':r>-80?'#d29922':'#f85149';}
+function fmtSize(b){if(!b)return '';if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB';}
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function setHTML(id,v){const el=document.getElementById(id);if(el)el.innerHTML=v;}
+function show(id){const el=document.getElementById(id);if(el)el.style.display='';}
+function hide(id){const el=document.getElementById(id);if(el)el.style.display='none';}
+function setBadge(id,cls,text){const el=document.getElementById(id);if(!el)return;el.className='badge '+cls;el.textContent=text;}
+function setMeter(valId,barId,val,mn,mx,color){
+  const pct=Math.max(0,Math.min(100,((val-mn)/(mx-mn))*100));
+  setText(valId,(val||'--')+' dBm');
+  const bar=document.getElementById(barId);
+  if(bar){bar.style.width=pct+'%';bar.style.background=color;}
+}
+function drawGraph(id,data,minV,maxV,color){
+  const c=document.getElementById(id);if(!c)return;
+  const ctx=c.getContext('2d');
+  c.width=c.offsetWidth||300;
+  const w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  if(!data||data.length<2)return;
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=(i/(data.length-1))*w;
+    const y=h-((v-minV)/(maxV-minV))*h;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();
+  ctx.fillStyle=color+'22';ctx.fill();
+}
+function drawBarGraph(id,data,color){
+  const c=document.getElementById(id);if(!c)return;
+  const ctx=c.getContext('2d');
+  c.width=c.offsetWidth||300;
+  const w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  if(!data||!data.length)return;
+  const mx=Math.max(...data,1);
+  const bw=w/data.length;
+  ctx.fillStyle=color;
+  data.forEach((v,i)=>{const bh=(v/mx)*h;ctx.fillRect(i*bw,h-bh,bw-1,bh);});
+}
+
+// === Keyboard ===============================================================
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  const map={ArrowUp:'UP',ArrowDown:'DOWN',ArrowLeft:'LEFT',ArrowRight:'RIGHT',Enter:'SELECT',' ':'SELECT'};
+  if(map[e.key]){e.preventDefault();tap(map[e.key]);}
+});
+
+// === Init ===================================================================
+if(!('serial' in navigator)){
+  const btn=document.getElementById('port-btn');
+  if(btn){btn.disabled=true;btn.textContent='No Web Serial';}
+  const note=document.getElementById('no-serial-note');
+  if(note)note.textContent='Web Serial requires Chrome or Edge.';
+}
+</script>
+</body>
+</html>
