@@ -31,12 +31,16 @@ extern bool bleScannerFirstDraw;
 extern int bleSelectedIndex;
 extern int bleScrollOffset;
 extern int bleLoggerTargetIndex;
+extern int bleDetailIndex;
+extern int bleDeviceCount;
+extern int bleRSSI[];
 
 extern bool wifiNeedsRedraw;
 extern bool wifiDetailActive;
 
 extern bool fileManagerNeedsRedraw;
 extern bool rfTransmitReturnToFileManager;
+extern bool displayUpdatesSuspended;
 
 extern TaskHandle_t bleScanTaskHandle;
 
@@ -76,13 +80,49 @@ extern String rfSubLoadedPath;
 extern bool shouldRedraw;
 extern bool bleScannerFirstDraw;
 
-static bool toolBackAwaitRelease = false;
+namespace {
+bool toolBackAwaitRelease = false;
+unsigned long bleDetailLastDrawMs = 0;
+int bleDetailLastIndex = -1;
+int bleDetailLastRssi = -127;
+
+void resetBleDetailRenderState() {
+    bleDetailLastDrawMs = 0;
+    bleDetailLastIndex = -1;
+    bleDetailLastRssi = -127;
+}
+
+void serviceBleDetailScreen() {
+    const unsigned long now = millis();
+    const bool validIndex = bleDetailIndex >= 0 && bleDetailIndex < bleDeviceCount;
+    const int currentRssi = validIndex ? bleRSSI[bleDetailIndex] : -127;
+    const bool firstDraw = !bleDetailActive || bleDetailLastIndex != bleDetailIndex;
+    const bool valueChanged = currentRssi != bleDetailLastRssi;
+    const bool changeDue = valueChanged &&
+        (bleDetailLastDrawMs == 0 || now - bleDetailLastDrawMs >= 160UL);
+    const bool refreshDue = bleDetailLastDrawMs == 0 ||
+        now - bleDetailLastDrawMs >= 500UL;
+
+    if (!firstDraw && !changeDue && !refreshDue) {
+        return;
+    }
+
+    drawBLEDetail();
+    bleDetailLastDrawMs = now;
+    bleDetailLastIndex = bleDetailIndex;
+    bleDetailLastRssi = currentRssi;
+}
+} // namespace
 
 void system_init() {
     shouldRedraw = true;
 }
 
 void system_handleInput() {
+    if (currentScreen != SCREEN_BLE_DETAIL) {
+        resetBleDetailRenderState();
+    }
+
     if (currentScreen == SCREEN_MAIN) {
         handleInput();
         return;
@@ -103,7 +143,8 @@ void system_handleInput() {
             return;
         }
         // Draw once on entry, then only update live RSSI every 500ms
-        extern bool wifiDetailDrawn;        static unsigned long wifiDetailLastUpdate = 0;
+        extern bool wifiDetailDrawn;
+        static unsigned long wifiDetailLastUpdate = 0;
         if (!wifiDetailDrawn) {
             drawWiFiDetail();
             wifiDetailDrawn = true;
@@ -117,11 +158,12 @@ void system_handleInput() {
 
     if (currentScreen == SCREEN_BLE_DETAIL) {
         if (isPressed(26)) {
+            resetBleDetailRenderState();
             navigateBack();
             delay(150);
             return;
         }
-        drawBLEDetail();
+        serviceBleDetailScreen();
         return;
     }
 
@@ -253,6 +295,10 @@ static void serviceToolScreen() {
     wifi_serviceMode();
     ble_serviceMode();
 
+    // Give the ESP32 idle task and watchdog a guaranteed scheduling point even
+    // for tool implementations that do not block or delay internally.
+    yield();
+
     if (currentRadioMode == RF_FREQUENCY_SWEEP) {
         delay(2);
     } else if (currentRadioMode == RF_TRANSMIT) {
@@ -282,6 +328,13 @@ static void serviceToolScreen() {
         return;
     } else if (currentRadioMode == RADIO_24_ACTIVE) {
         delay(10);
+    } else if (currentRadioMode == RADIO_24_PROTOCOL_ANALYZER ||
+               currentRadioMode == RADIO_24_PACKET_FLOOD ||
+               currentRadioMode == RF_JAMMER ||
+               currentRadioMode == RF_SQUELCH_ACTIVATE ||
+               currentRadioMode == RF_REPLAY ||
+               currentRadioMode == RF_ROLLING_CAPTURE) {
+        delay(6);
     } else if (currentRadioMode == RADIO_24_SCAN ||
                currentRadioMode == RADIO_NOISE_ANALYZER ||
                currentRadioMode == BLE_BEACON_SPAM ||
@@ -296,6 +349,8 @@ static void serviceToolScreen() {
         delay(20);
     } else if (currentRadioMode == BLE_SCAN) {
         return;
+    } else {
+        delay(1);
     }
 }
 
@@ -319,10 +374,14 @@ void system_update() {
 
     if (currentScreen == SCREEN_TOOL) {
         serviceToolScreen();
-        ui_renderDebugOverlay();
+        if (!displayUpdatesSuspended) {
+            ui_renderDebugOverlay();
+        }
         return;
     }
 
     system_handleInput();
-    ui_renderDebugOverlay();
+    if (!displayUpdatesSuspended) {
+        ui_renderDebugOverlay();
+    }
 }
