@@ -34,6 +34,36 @@ jobs:
           set -o pipefail
           pio run -e esp32dev 2>&1 | tee platformio-build.log
 
+      - name: Package complete project and binaries
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="dist/Project-Skull-Breaker-radio-test"
+          mkdir -p "$package_root/compiled"
+
+          rsync -a ./ "$package_root/" \
+            --exclude '.git/' \
+            --exclude '.pio/' \
+            --exclude 'dist/'
+
+          cp .pio/build/esp32dev/firmware.bin "$package_root/compiled/firmware.bin"
+          cp .pio/build/esp32dev/bootloader.bin "$package_root/compiled/bootloader.bin"
+          cp .pio/build/esp32dev/partitions.bin "$package_root/compiled/partitions.bin"
+          cp platformio-build.log "$package_root/platformio-build.log"
+
+          cd dist
+          zip -qr Project-Skull-Breaker-radio-test.zip Project-Skull-Breaker-radio-test
+
+      - name: Upload complete firmware ZIP
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Project-Skull-Breaker-radio-test
+          path: dist/Project-Skull-Breaker-radio-test.zip
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
