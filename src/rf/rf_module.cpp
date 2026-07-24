@@ -61,10 +61,10 @@ void refreshDiagnosticsStatus();
 
 namespace {
 constexpr int kNrfChannelCount = 126;
-constexpr uint32_t kSessionGapMs = 650;
-constexpr uint32_t kNrfHealthIntervalMs = 2500;
-constexpr uint32_t kCcHealthIntervalMs = 1200;
-constexpr uint32_t kCcVersionIntervalMs = 5000;
+constexpr uint16_t kSessionGapMs = 650;
+constexpr uint16_t kNrfHealthIntervalMs = 2500;
+constexpr uint16_t kCcHealthIntervalMs = 1200;
+constexpr uint16_t kCcVersionIntervalMs = 5000;
 
 constexpr uint8_t kCcVersionReg = 0x31;
 constexpr uint8_t kCcMarcStateReg = 0x35;
@@ -76,23 +76,28 @@ constexpr uint8_t kCcStrobeSfrx = 0x3A;
 constexpr uint8_t kCcStrobeSftx = 0x3B;
 
 RadioMode lastServicedMode = RADIO_IDLE;
-uint32_t lastInvocationMs = 0;
-uint32_t lastNrfHealthMs = 0;
-uint32_t lastCcHealthMs = 0;
-uint32_t lastCcVersionMs = 0;
-uint32_t lastScannerUiMs = 0;
-uint32_t lastScannerInfoMs = 0;
-uint32_t lastWaterfallMs = 0;
-uint32_t lastNoiseUiMs = 0;
-uint32_t lastActiveUiMs = 0;
-uint32_t lastModeServiceMs = 0;
+uint16_t lastInvocationMs = 0;
+uint16_t lastNrfHealthMs = 0;
+uint16_t lastCcHealthMs = 0;
+uint16_t lastCcVersionMs = 0;
+uint16_t lastScannerUiMs = 0;
+uint16_t lastScannerInfoMs = 0;
+uint16_t lastWaterfallMs = 0;
+uint16_t lastNoiseUiMs = 0;
+uint16_t lastActiveUiMs = 0;
+uint16_t lastModeServiceMs = 0;
 bool nrfPassivePrepared = false;
 
-bool elapsed(uint32_t now, uint32_t& previous, uint32_t intervalMs) {
-    if (previous != 0 && static_cast<uint32_t>(now - previous) < intervalMs) {
+uint16_t compactMillis(uint32_t now) {
+    return static_cast<uint16_t>(now & 0xFFFFU);
+}
+
+bool elapsed(uint32_t now, uint16_t& previous, uint16_t intervalMs) {
+    const uint16_t compactNow = compactMillis(now);
+    if (previous != 0 && static_cast<uint16_t>(compactNow - previous) < intervalMs) {
         return false;
     }
-    previous = now;
+    previous = compactNow;
     return true;
 }
 
@@ -389,23 +394,24 @@ void service24GHzActive(uint32_t now) {
     }
 }
 
-bool serviceDue(uint32_t now, uint32_t intervalMs) {
+bool serviceDue(uint32_t now, uint16_t intervalMs) {
     return elapsed(now, lastModeServiceMs, intervalMs);
 }
 } // namespace
 
 void rf_serviceMode() {
     const uint32_t now = millis();
+    const uint16_t compactNow = compactMillis(now);
 
     // A long gap means the user left the tool screen. Treat the next call as a
     // fresh session even when they reopen the same mode.
     if (lastInvocationMs != 0 &&
-        static_cast<uint32_t>(now - lastInvocationMs) > kSessionGapMs) {
+        static_cast<uint16_t>(compactNow - lastInvocationMs) > kSessionGapMs) {
         lastServicedMode = RADIO_IDLE;
         nrfPassivePrepared = false;
         resetServiceTimers();
     }
-    lastInvocationMs = now;
+    lastInvocationMs = compactNow;
 
     if (lastServicedMode != currentRadioMode) {
         const RadioMode previousMode = lastServicedMode;
