@@ -31,16 +31,16 @@ bool cc1101TransmitBurstPacket(const uint8_t* payload, size_t len);
 namespace {
 constexpr uint8_t kNrfAddressWidth = 5;
 constexpr uint8_t kNrfPayloadSize = 16;
-constexpr uint16_t kNrfPacketIntervalMs = 100;
+constexpr uint16_t kNrfPacketIntervalMs = 50;
 constexpr uint16_t kNrfUiIntervalMs = 500;
 constexpr uint16_t kNrfRetryIntervalMs = 2500;
-constexpr uint16_t kCcPacketIntervalMs = 250;
+constexpr uint16_t kCcPacketIntervalMs = 100;
 constexpr uint16_t kCcUiIntervalMs = 500;
 constexpr uint16_t kCcRetryIntervalMs = 2500;
 constexpr uint8_t kCcPaTableReg = 0x3E;
 constexpr uint8_t kCcStrobeSidle = 0x36;
 constexpr uint8_t kCcStrobeSftx = 0x3B;
-constexpr uint8_t kCcLowPowerPa = 0x12;
+constexpr uint8_t kCcMaxPowerPa = 0xC0;
 
 const uint8_t kNrfAddress1[kNrfAddressWidth] = {'S', 'B', 'T', '1', 'A'};
 const uint8_t kNrfAddress3[kNrfAddressWidth] = {'S', 'B', 'T', '1', 'B'};
@@ -111,7 +111,7 @@ bool configureOneNrf(RF24& radio, bool& available, const uint8_t* address, uint8
     delay(2);
     radio.setAutoAck(false);
     radio.setRetries(0, 0);
-    radio.setPALevel(RF24_PA_MIN);
+    radio.setPALevel(RF24_PA_MAX);
     radio.setDataRate(RF24_1MBPS);
     radio.setCRCLength(RF24_CRC_16);
     radio.setAddressWidth(kNrfAddressWidth);
@@ -222,10 +222,10 @@ void drawNrfTestScreen(bool fullRedraw) {
         tft.setTextSize(1);
         tft.setTextColor(tft.color565(160, 160, 160));
         tft.setCursor(18, 58);
-        tft.print(F("Bounded NRF24 test packets"));
+        tft.print(F("Continuous valid NRF24 packets"));
         tft.drawFastHLine(10, 68, 220, tft.color565(52, 52, 52));
         tft.setCursor(16, 252);
-        tft.print(F("10 packets/s total, PA MIN"));
+        tft.print(F("20 packets/s total, PA MAX"));
         tft.setCursor(16, 270);
         tft.print(F("LEFT back"));
     }
@@ -289,10 +289,10 @@ void drawCcTestScreen(bool fullRedraw) {
         tft.setTextSize(1);
         tft.setTextColor(tft.color565(160, 160, 160));
         tft.setCursor(18, 58);
-        tft.print(F("CC1101 diagnostic packets"));
+        tft.print(F("Continuous valid CC1101 packets"));
         tft.drawFastHLine(10, 68, 220, tft.color565(52, 52, 52));
         tft.setCursor(16, 252);
-        tft.print(F("4 packets/s, low PA setting"));
+        tft.print(F("10 packets/s, PA MAX"));
         tft.setCursor(16, 270);
         tft.print(F("UP/DN tune  LEFT back"));
     }
@@ -347,7 +347,7 @@ void serviceSafeCcMode() {
         displayUpdatesSuspended = true;
         cc1101Strobe(kCcStrobeSidle);
         cc1101SetFrequencyMHz(rfLockedFrequencyMHz);
-        cc1101WriteBurst(kCcPaTableReg, &kCcLowPowerPa, 1);
+        cc1101WriteBurst(kCcPaTableReg, &kCcMaxPowerPa, 1);
         const bool sent = cc1101TransmitBurstPacket(reinterpret_cast<const uint8_t*>(&payload), sizeof(payload));
         cc1101Strobe(kCcStrobeSidle);
         cc1101Strobe(kCcStrobeSftx);
