@@ -16,11 +16,26 @@ $archivePath = Join-Path $tempRoot "firmware.zip"
 $extractPath = Join-Path $tempRoot "extract"
 
 function Invoke-PlatformIO {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$PlatformIOArguments
+    )
 
-    $pio = Get-Command pio -ErrorAction SilentlyContinue
+    $knownPlatformIO = Join-Path $env:USERPROFILE ".platformio\penv\Scripts\platformio.exe"
+    if (Test-Path -LiteralPath $knownPlatformIO) {
+        & $knownPlatformIO @PlatformIOArguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "PlatformIO failed with exit code $LASTEXITCODE."
+        }
+        return
+    }
+
+    $pio = Get-Command platformio -ErrorAction SilentlyContinue
+    if ($null -eq $pio) {
+        $pio = Get-Command pio -ErrorAction SilentlyContinue
+    }
     if ($null -ne $pio) {
-        & $pio.Source @Arguments
+        & $pio.Source @PlatformIOArguments
         if ($LASTEXITCODE -ne 0) {
             throw "PlatformIO failed with exit code $LASTEXITCODE."
         }
@@ -41,7 +56,7 @@ function Invoke-PlatformIO {
         throw "PlatformIO installation failed."
     }
 
-    & $py.Source -m platformio @Arguments
+    & $py.Source -m platformio @PlatformIOArguments
     if ($LASTEXITCODE -ne 0) {
         throw "PlatformIO failed with exit code $LASTEXITCODE."
     }
@@ -105,15 +120,15 @@ try {
     Write-Host "Upload port: $resolvedPort" -ForegroundColor Green
 
     Write-Host "Building firmware..." -ForegroundColor Cyan
-    Invoke-PlatformIO run -e esp32dev
+    Invoke-PlatformIO -PlatformIOArguments @("run", "-e", "esp32dev")
 
     if ($UploadFilesystem) {
         Write-Host "Uploading LittleFS assets..." -ForegroundColor Cyan
-        Invoke-PlatformIO run -e esp32dev --target uploadfs --upload-port $resolvedPort
+        Invoke-PlatformIO -PlatformIOArguments @("run", "-e", "esp32dev", "--target", "uploadfs", "--upload-port", $resolvedPort)
     }
 
     Write-Host "Uploading firmware..." -ForegroundColor Cyan
-    Invoke-PlatformIO run -e esp32dev --target upload --upload-port $resolvedPort
+    Invoke-PlatformIO -PlatformIOArguments @("run", "-e", "esp32dev", "--target", "upload", "--upload-port", $resolvedPort)
 
     Write-Host "Firmware upload completed successfully." -ForegroundColor Green
     Write-Host "If a future upload pauses at 'Connecting...', hold BOOT until writing starts." -ForegroundColor Yellow
