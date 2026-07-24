@@ -22,6 +22,7 @@ extern Adafruit_ILI9341 tft;
 int getSelected24GHzIndex();
 void drawStatusBar();
 void refreshDiagnosticsStatus();
+void primeSharedSPIBus();
 bool ensureCC1101Ready();
 void cc1101SetFrequencyMHz(float mhz);
 void cc1101WriteBurst(uint8_t reg, const uint8_t* data, size_t len);
@@ -31,12 +32,12 @@ bool cc1101TransmitBurstPacket(const uint8_t* payload, size_t len);
 namespace {
 constexpr uint8_t kNrfAddressWidth = 5;
 constexpr uint8_t kNrfPayloadSize = 16;
-constexpr uint16_t kNrfPacketIntervalMs = 50;
+constexpr uint16_t kNrfPacketIntervalMs = 10;
 constexpr uint16_t kNrfUiIntervalMs = 500;
-constexpr uint16_t kNrfRetryIntervalMs = 2500;
-constexpr uint16_t kCcPacketIntervalMs = 100;
+constexpr uint16_t kNrfRetryIntervalMs = 1000;
+constexpr uint16_t kCcPacketIntervalMs = 25;
 constexpr uint16_t kCcUiIntervalMs = 500;
-constexpr uint16_t kCcRetryIntervalMs = 2500;
+constexpr uint16_t kCcRetryIntervalMs = 1000;
 constexpr uint8_t kCcPaTableReg = 0x3E;
 constexpr uint8_t kCcStrobeSidle = 0x36;
 constexpr uint8_t kCcStrobeSftx = 0x3B;
@@ -78,6 +79,17 @@ unsigned long lastCcPacketMs = 0;
 unsigned long lastCcUiMs = 0;
 unsigned long lastCcRetryMs = 0;
 
+bool nrfChipConnectedStable(RF24& radio) {
+    for (uint8_t attempt = 0; attempt < 3; ++attempt) {
+        primeSharedSPIBus();
+        if (radio.isChipConnected()) {
+            return true;
+        }
+        delay(3);
+    }
+    return false;
+}
+
 void resetSafeState(RadioMode mode) {
     safeMode = mode;
     nrf1Configured = false;
@@ -95,23 +107,39 @@ void resetSafeState(RadioMode mode) {
 }
 
 bool configureOneNrf(RF24& radio, bool& available, const uint8_t* address, uint8_t channel) {
-    radio.stopConstCarrier();
-    radio.stopListening();
+    bool connected = false;
 
-    if (!available || !radio.isChipConnected()) {
-        radio.powerDown();
-        delay(3);
-        available = radio.begin(&SPI);
+    if (available) {
+        connected = nrfChipConnectedStable(radio);
+    }
+
+    if (!connected) {
+        available = false;
+        for (uint8_t attempt = 0; attempt < 4 && !available; ++attempt) {
+            primeSharedSPIBus();
+            delay(8);
+            const bool beginOk = radio.begin(&SPI);
+            delay(4);
+            available = beginOk && nrfChipConnectedStable(radio);
+            if (!available) {
+                SPI.end();
+                delay(6);
+                SPI.begin(18, 19, 23);
+                delay(8);
+            }
+        }
         if (!available) {
             return false;
         }
     }
 
+    radio.stopConstCarrier();
+    radio.stopListening();
     radio.powerUp();
-    delay(2);
+    delay(3);
     radio.setAutoAck(false);
     radio.setRetries(0, 0);
-    radio.setPALevel(RF24_PA_MAX);
+    radio.setPALevel(RF24_PA_MAX, true);
     radio.setDataRate(RF24_1MBPS);
     radio.setCRCLength(RF24_CRC_16);
     radio.setAddressWidth(kNrfAddressWidth);
@@ -121,7 +149,13 @@ bool configureOneNrf(RF24& radio, bool& available, const uint8_t* address, uint8
     radio.openWritingPipe(address);
     radio.flush_rx();
     radio.flush_tx();
-    return true;
+
+    available = radio.getChannel() == channel;
+    if (!available) {
+        delay(3);
+        available = radio.getChannel() == channel && nrfChipConnectedStable(radio);
+    }
+    return available;
 }
 
 void prepareNrfTransmitters(uint8_t channel, unsigned long now) {
@@ -136,8 +170,10 @@ void prepareNrfTransmitters(uint8_t channel, unsigned long now) {
     displayUpdatesSuspended = true;
 
     nrf1Configured = configureOneNrf(radio1, radio1Ok, kNrfAddress1, channel);
-    if (radio3Ok || channelChanged || !nrf3Configured) {
+    if (radio3Ok) {
         nrf3Configured = configureOneNrf(radio3, radio3Ok, kNrfAddress3, channel);
+    } else {
+        nrf3Configured = false;
     }
 
     nrfConfiguredChannel = channel;
@@ -177,24 +213,24 @@ void serviceNrfPackets() {
 
     if (nrf1Configured && nrf3Configured) {
         if (nextNrfRadio == 0) {
-            if (!sendNrfPacket(radio1, 1, channel) && !radio1.isChipConnected()) {
+            if (!sendNrfPacket(radio1, 1, channel) && !nrfChipConnectedStable(radio1)) {
                 radio1Ok = false;
                 nrf1Configured = false;
             }
         } else {
-            if (!sendNrfPacket(radio3, 3, channel) && !radio3.isChipConnected()) {
+            if (!sendNrfPacket(radio3, 3, channel) && !nrfChipConnectedStable(radio3)) {
                 radio3Ok = false;
                 nrf3Configured = false;
             }
         }
         nextNrfRadio ^= 1;
     } else if (nrf1Configured) {
-        if (!sendNrfPacket(radio1, 1, channel) && !radio1.isChipConnected()) {
+        if (!sendNrfPacket(radio1, 1, channel) && !nrfChipConnectedStable(radio1)) {
             radio1Ok = false;
             nrf1Configured = false;
         }
     } else if (nrf3Configured) {
-        if (!sendNrfPacket(radio3, 3, channel) && !radio3.isChipConnected()) {
+        if (!sendNrfPacket(radio3, 3, channel) && !nrfChipConnectedStable(radio3)) {
             radio3Ok = false;
             nrf3Configured = false;
         }
@@ -222,10 +258,10 @@ void drawNrfTestScreen(bool fullRedraw) {
         tft.setTextSize(1);
         tft.setTextColor(tft.color565(160, 160, 160));
         tft.setCursor(18, 58);
-        tft.print(F("Continuous valid NRF24 packets"));
+        tft.print(F("Runs until LEFT; valid packets"));
         tft.drawFastHLine(10, 68, 220, tft.color565(52, 52, 52));
         tft.setCursor(16, 252);
-        tft.print(F("20 packets/s total, PA MAX"));
+        tft.print(F("100 packets/s total, PA MAX"));
         tft.setCursor(16, 270);
         tft.print(F("LEFT back"));
     }
@@ -289,10 +325,10 @@ void drawCcTestScreen(bool fullRedraw) {
         tft.setTextSize(1);
         tft.setTextColor(tft.color565(160, 160, 160));
         tft.setCursor(18, 58);
-        tft.print(F("Continuous valid CC1101 packets"));
+        tft.print(F("Runs until LEFT; valid packets"));
         tft.drawFastHLine(10, 68, 220, tft.color565(52, 52, 52));
         tft.setCursor(16, 252);
-        tft.print(F("10 packets/s, PA MAX"));
+        tft.print(F("40 packets/s, PA MAX"));
         tft.setCursor(16, 270);
         tft.print(F("UP/DN tune  LEFT back"));
     }
