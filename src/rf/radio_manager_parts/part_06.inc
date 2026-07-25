@@ -13,19 +13,34 @@ bool radioManagerPrepareCcPassive(float frequencyMHz, bool force) {
     if (!lock.locked() || !radioManagerEnsureCc1101()) {
         return false;
     }
-    const float target = frequencyMHz > 0.0f ? frequencyMHz : rfLockedFrequencyMHz;
+
+    const float target = constrain(frequencyMHz > 0.0f ? frequencyMHz : rfLockedFrequencyMHz,
+                                   300.0f, 928.0f);
+    const bool rawOokMode = currentRadioMode == RF_SIGNAL_CAPTURE ||
+                            currentRadioMode == RF_ROLLING_CAPTURE ||
+                            currentRadioMode == RF_REPLAY;
+    const CcProfile wantedProfile = rawOokMode ? CcProfile::RawOok : CcProfile::Rssi;
+
     if (!force && g_status.owner == RadioBusOwner::CcPassive &&
         cc1101PreparedPassiveMode == static_cast<int>(currentRadioMode) &&
-        fabsf(cc1101PreparedPassiveMHz - target) < 0.0005f) {
+        fabsf(cc1101PreparedPassiveMHz - target) < 0.0005f &&
+        g_ccProfile == wantedProfile) {
         cc1101LastReadyMs = millis();
         return true;
     }
 
     stopNrfLocked();
     pinMode(RadioPins::kCc1101Gdo0, INPUT);
-    ccStrobeLocked(kCcSidle);
-    ccConfigureBaseLocked();
-    ccSetFrequencyLocked(target, false);
+    if (rawOokMode) {
+        ccConfigureRawOokLocked(target);
+    } else {
+        ccConfigureBaseLocked();
+        if (fabsf(g_status.cc1101FrequencyMHz - target) >= 0.0005f) {
+            ccSetFrequencyLocked(target, false);
+        }
+        g_ccProfile = CcProfile::Rssi;
+    }
+
     cc1101PreparedPassiveMode = static_cast<int>(currentRadioMode);
     cc1101PreparedPassiveMHz = target;
     cc1101LastReadyMs = millis();
@@ -33,29 +48,33 @@ bool radioManagerPrepareCcPassive(float frequencyMHz, bool force) {
     return true;
 }
 
+
 bool radioManagerPrepareCcActive(float frequencyMHz, bool force) {
     ensureMutex();
     RecursiveLock lock;
     if (!lock.locked() || !radioManagerEnsureCc1101()) {
         return false;
     }
-    const float target = frequencyMHz > 0.0f ? frequencyMHz : rfLockedFrequencyMHz;
-    if (!force && g_status.owner == RadioBusOwner::CcActive) {
+
+    const float target = constrain(frequencyMHz > 0.0f ? frequencyMHz : rfLockedFrequencyMHz,
+                                   300.0f, 928.0f);
+    const bool frequencyChanged = fabsf(g_ccActiveMHz - target) >= 0.0005f;
+    if (!force && g_status.owner == RadioBusOwner::CcActive &&
+        g_ccProfile == CcProfile::PacketTx && !frequencyChanged) {
         cc1101LastReadyMs = millis();
         return true;
     }
 
     stopNrfLocked();
-    pinMode(RadioPins::kCc1101Gdo0, INPUT);
-    ccStrobeLocked(kCcSidle);
-    ccConfigureBaseLocked();
-    ccSetFrequencyLocked(target, false);
+    ccConfigurePacketTxLocked(target);
     cc1101PreparedPassiveMode = -1;
     cc1101PreparedPassiveMHz = -1.0f;
     cc1101LastReadyMs = millis();
     markOwnerLocked(RadioBusOwner::CcActive);
-    return true;
+    return g_ccProfile == CcProfile::PacketTx &&
+           fabsf(g_ccActiveMHz - target) < 0.0005f;
 }
+
 
 void radioManagerStopCc1101() {
     ensureMutex();
