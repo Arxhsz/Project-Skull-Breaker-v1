@@ -94,6 +94,7 @@ bool radioManagerSampleNrfRpd(uint8_t channel, uint8_t samples, uint16_t settleU
     const uint8_t selectedChannel = static_cast<uint8_t>(constrain(static_cast<int>(channel), 0, 125));
     radio1.stopListening();
     radio1.setChannel(selectedChannel);
+    g_status.nrfChannel = radio1.getChannel();
     for (uint8_t i = 0; i < samples; ++i) {
         // RPD is latched while in RX. Leave RX between samples so every hit is
         // an independent measurement instead of repeating the first detection.
