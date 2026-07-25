@@ -105,6 +105,14 @@ try {
     }
 
     if (Test-Path $destination) {
+        $currentPath = [System.IO.Path]::GetFullPath((Get-Location).ProviderPath).TrimEnd('\')
+        $destinationPath = [System.IO.Path]::GetFullPath($destination).TrimEnd('\')
+        if ($currentPath.Equals($destinationPath, [System.StringComparison]::OrdinalIgnoreCase) -or
+            $currentPath.StartsWith($destinationPath + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+            Write-Host "Leaving the active project folder before creating its backup..." -ForegroundColor Yellow
+            Set-Location $documents
+        }
+
         $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
         $backup = "$destination-backup-$stamp"
         Write-Host "Moving the previous folder to $backup" -ForegroundColor Yellow
