@@ -52,9 +52,11 @@ constexpr uint8_t kCcStateTxFifoUnderflow = 0x16;
 constexpr uint32_t kNrfProbeBackoffMs = 900;
 constexpr uint32_t kCcProbeBackoffMs = 900;
 constexpr uint32_t kHealthIntervalMs = 2500;
-constexpr float kFrequencyCorrectionPpm = 34.0f;
+constexpr float kFrequencyCorrectionPpm = 0.0f;
 
 constexpr uint8_t kNrfAddress[5] = {'S', 'B', 'T', '1', 'A'};
+
+enum class CcProfile : uint8_t { None, Rssi, RawOok, PacketTx };
 
 RadioManagerStatus g_status;
 SemaphoreHandle_t g_spiMutex = nullptr;
@@ -62,6 +64,8 @@ bool g_ccTransactionOpen = false;
 bool g_nrfPassiveConfigured = false;
 bool g_nrfTxConfigured = false;
 uint8_t g_nrfTxChannel = 0xFF;
+CcProfile g_ccProfile = CcProfile::None;
+float g_ccActiveMHz = -1.0f;
 uint32_t g_lastNrfProbeMs = 0;
 uint32_t g_lastCcProbeMs = 0;
 uint32_t g_lastHealthMs = 0;
