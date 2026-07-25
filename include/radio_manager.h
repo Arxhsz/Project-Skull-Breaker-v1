@@ -39,6 +39,10 @@ struct RadioManagerStatus {
     RadioBusOwner owner = RadioBusOwner::None;
     uint32_t nrfRecoveries = 0;
     uint32_t cc1101Recoveries = 0;
+    uint8_t nrfChannel = 0xFF;
+    float cc1101FrequencyMHz = 0.0f;
+    bool cc1101LastTxVerified = false;
+    int cc1101LastRssiDbm = -127;
 };
 
 void radioManagerPrimeBus();
@@ -56,6 +60,7 @@ bool radioManagerPrepareNrfPassive(bool force = false);
 bool radioManagerSampleNrfRpd(uint8_t channel, uint8_t samples, uint16_t settleUs, uint8_t& hits);
 bool radioManagerPrepareNrfPacketTx(uint8_t channel, bool force = false);
 bool radioManagerWriteNrfPacket(const void* payload, size_t length, uint8_t channel);
+uint8_t radioManagerNrfReadChannel();
 void radioManagerStopNrf();
 
 bool radioManagerProbeCc1101(bool configureAfter = true, bool force = false);
@@ -77,4 +82,6 @@ void radioManagerCcConfigureBase();
 void radioManagerCcEnterRx();
 void radioManagerCcSetFrequency(float frequencyMHz, bool quick = false);
 int radioManagerCcReadRssi();
+float radioManagerCcFrequencyMHz();
+bool radioManagerCcLastTxVerified();
 bool radioManagerCcTransmitPacket(const uint8_t* payload, size_t length);
