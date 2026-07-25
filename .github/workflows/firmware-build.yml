@@ -1,0 +1,74 @@
+name: Firmware Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - fix/radio-lifecycle-ui-flicker
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade pip platformio
+
+      - name: Build ESP32 firmware
+        id: firmware-build
+        shell: bash
+        run: |
+          set -o pipefail
+          pio run -e esp32dev 2>&1 | tee platformio-build.log
+
+      - name: Package complete project and binaries
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="dist/Project-Skull-Breaker-radio-test"
+          mkdir -p "$package_root/compiled"
+
+          rsync -a ./ "$package_root/" \
+            --exclude '.git/' \
+            --exclude '.pio/' \
+            --exclude 'dist/'
+
+          cp .pio/build/esp32dev/firmware.bin "$package_root/compiled/firmware.bin"
+          cp .pio/build/esp32dev/bootloader.bin "$package_root/compiled/bootloader.bin"
+          cp .pio/build/esp32dev/partitions.bin "$package_root/compiled/partitions.bin"
+          cp platformio-build.log "$package_root/platformio-build.log"
+
+          cd dist
+          zip -qr Project-Skull-Breaker-radio-test.zip Project-Skull-Breaker-radio-test
+
+      - name: Upload complete firmware ZIP
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Project-Skull-Breaker-radio-test
+          path: dist/Project-Skull-Breaker-radio-test.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: platformio-build-log
+          path: platformio-build.log
+          if-no-files-found: error
+          retention-days: 7
