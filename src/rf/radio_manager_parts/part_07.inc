@@ -38,7 +38,6 @@ int radioManagerCcReadRssi() {
     ensureMutex();
     RecursiveLock lock;
     if (!lock.locked() || !radioManagerEnsureCc1101()) {
-        g_status.cc1101LastRssiDbm = -127;
         return -127;
     }
 
@@ -46,9 +45,7 @@ int radioManagerCcReadRssi() {
     // measurement (~-74.5 dBm), so it must not be treated as an SPI failure.
     const uint8_t raw = ccReadLocked(kCcRssi, true);
     const int signedRaw = raw >= 128 ? static_cast<int>(raw) - 256 : raw;
-    const int rssi = constrain((signedRaw / 2) - 74, -127, 0);
-    g_status.cc1101LastRssiDbm = rssi;
-    return rssi;
+    return constrain((signedRaw / 2) - 74, -127, 0);
 }
 
 float radioManagerCcFrequencyMHz() {
