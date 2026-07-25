@@ -14,8 +14,11 @@ extern bool cc1101Ok;
 extern float rfLockedFrequencyMHz;
 extern Adafruit_ILI9341 tft;
 
-int getSelected24GHzIndex();
+bool isPressed(int pin);
 void drawStatusBar();
+
+constexpr int kButtonUp = 32;
+constexpr int kButtonDown = 33;
 
 namespace {
 constexpr uint16_t kNrfPacketIntervalMs = 10;   // 100 packets/s
@@ -50,6 +53,7 @@ uint32_t g_nrfSequence = 0;
 uint32_t g_ccSequence = 0;
 uint32_t g_nrfFailures = 0;
 uint32_t g_ccFailures = 0;
+uint8_t g_nrfChannel = 76;
 unsigned long g_lastNrfPacketMs = 0;
 unsigned long g_lastCcPacketMs = 0;
 unsigned long g_lastUiMs = 0;
@@ -70,7 +74,23 @@ void resetTestState(RadioMode mode) {
 
 void serviceNrfPackets() {
     const unsigned long now = millis();
-    const uint8_t channel = static_cast<uint8_t>(constrain(getSelected24GHzIndex(), 0, 125));
+
+    bool channelChanged = false;
+    if (isPressed(kButtonUp)) {
+        g_nrfChannel = static_cast<uint8_t>((g_nrfChannel + 1U) % 126U);
+        channelChanged = true;
+    }
+    if (isPressed(kButtonDown)) {
+        g_nrfChannel = static_cast<uint8_t>((g_nrfChannel + 125U) % 126U);
+        channelChanged = true;
+    }
+    if (channelChanged) {
+        radioManagerPrepareNrfPacketTx(g_nrfChannel, true);
+        attackFirstDraw = true;
+        radio24ActiveFirstDraw = true;
+    }
+
+    const uint8_t channel = g_nrfChannel;
 
     if (!radio1Ok && (g_lastRetryMs == 0 || now - g_lastRetryMs >= kRetryIntervalMs)) {
         g_lastRetryMs = now;
@@ -148,10 +168,11 @@ void drawNrfScreen(bool fullRedraw) {
         tft.setCursor(16, 252);
         tft.print(F("100 packets/s  PA MAX + LNA"));
         tft.setCursor(16, 270);
-        tft.print(F("LEFT back"));
+        tft.print(F("UP/DN channel  LEFT back"));
     }
 
-    const int channel = constrain(getSelected24GHzIndex(), 0, 125);
+    const uint8_t channel = g_nrfChannel;
+    const uint8_t hardwareChannel = radioManagerNrfReadChannel();
     tft.fillRect(14, 88, 212, 138, ILI9341_BLACK);
     tft.setTextSize(2);
     tft.setTextColor(ILI9341_CYAN);
@@ -165,10 +186,13 @@ void drawNrfScreen(bool fullRedraw) {
     tft.print(F("Primary NRF24: "));
     tft.print(radio1Ok ? F("TX") : F("OFFLINE"));
     tft.setCursor(24, 150);
+    tft.print(F("Radio register: CH "));
+    if (hardwareChannel == 0xFF) tft.print(F("--"));
+    else tft.print(hardwareChannel);
+    tft.setCursor(24, 168);
     tft.print(F("Packets: "));
     tft.print(g_nrfSequence);
-    tft.setCursor(24, 168);
-    tft.print(F("Failures: "));
+    tft.print(F("  Fail: "));
     tft.print(g_nrfFailures);
     tft.setCursor(24, 194);
     tft.setTextColor(tft.color565(160, 160, 160));
@@ -217,7 +241,13 @@ void drawCcScreen(bool fullRedraw) {
     tft.setCursor(24, 172);
     tft.print(F("Failures: "));
     tft.print(g_ccFailures);
-    tft.setCursor(24, 198);
+    tft.setCursor(24, 190);
+    tft.print(F("Radio freq: "));
+    tft.print(radioManagerCcFrequencyMHz(), 3);
+    tft.setCursor(24, 208);
+    tft.print(F("Hardware TX: "));
+    tft.print(radioManagerCcLastTxVerified() ? F("VERIFIED") : F("NO PULSE"));
+    tft.setCursor(24, 226);
     tft.setTextColor(tft.color565(160, 160, 160));
     tft.print(F("Payload magic: SBCC"));
 }
