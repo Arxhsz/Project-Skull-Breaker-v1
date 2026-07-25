@@ -35,41 +35,98 @@ void radioManagerCcSetFrequency(float frequencyMHz, bool quick) {
 }
 
 int radioManagerCcReadRssi() {
-    const uint8_t raw = radioManagerCcReadStatus(kCcRssi);
-    if (raw == 0xFF) return -120;
+    ensureMutex();
+    RecursiveLock lock;
+    if (!lock.locked() || !radioManagerEnsureCc1101()) {
+        g_status.cc1101LastRssiDbm = -127;
+        return -127;
+    }
+
+    // RSSI is an 8-bit two's-complement status value. 0xFF is a valid
+    // measurement (~-74.5 dBm), so it must not be treated as an SPI failure.
+    const uint8_t raw = ccReadLocked(kCcRssi, true);
     const int signedRaw = raw >= 128 ? static_cast<int>(raw) - 256 : raw;
-    return (signedRaw / 2) - 74;
+    const int rssi = constrain((signedRaw / 2) - 74, -127, 0);
+    g_status.cc1101LastRssiDbm = rssi;
+    return rssi;
 }
+
+float radioManagerCcFrequencyMHz() {
+    return g_status.cc1101FrequencyMHz;
+}
+
+bool radioManagerCcLastTxVerified() {
+    return g_status.cc1101LastTxVerified;
+}
+
 
 bool radioManagerCcTransmitPacket(const uint8_t* payload, size_t length) {
     if (payload == nullptr || length == 0 || length > 61 ||
         !radioManagerPrepareCcActive(rfLockedFrequencyMHz, false)) {
+        g_status.cc1101LastTxVerified = false;
         return false;
     }
 
     ensureMutex();
     RecursiveLock lock;
-    if (!lock.locked()) return false;
+    if (!lock.locked()) {
+        g_status.cc1101LastTxVerified = false;
+        return false;
+    }
 
     ccStrobeLocked(kCcSidle);
     ccStrobeLocked(kCcSftx);
     const uint8_t packetLength = static_cast<uint8_t>(length);
     ccWriteBurstLocked(kCcTxFifo, &packetLength, 1);
     ccWriteBurstLocked(kCcTxFifo, payload, length);
-    ccStrobeLocked(kCcStx);
+    pinMode(RadioPins::kCc1101Gdo0, INPUT);
 
-    const uint32_t started = millis();
-    while (millis() - started < 80UL) {
-        const uint8_t txBytes = ccReadLocked(kCcTxBytes, true);
-        if ((txBytes & 0x7F) == 0) break;
-        delay(1);
+    const uint8_t stxStatus = ccStrobeLocked(kCcStx);
+    bool sawGdoHigh = false;
+    bool sawPacketEnd = false;
+    bool underflow = false;
+    uint8_t lastTxBytes = 0x7F;
+    const uint32_t startedUs = micros();
+
+    while (static_cast<uint32_t>(micros() - startedUs) < 120000UL) {
+        const bool gdoHigh = digitalRead(RadioPins::kCc1101Gdo0) == HIGH;
+        if (gdoHigh) {
+            sawGdoHigh = true;
+        } else if (sawGdoHigh) {
+            sawPacketEnd = true;
+        }
+
+        lastTxBytes = ccReadLocked(kCcTxBytes, true);
+        underflow = (lastTxBytes & 0x80U) != 0;
+        if (underflow) {
+            break;
+        }
+        if ((lastTxBytes & 0x7FU) == 0U && (sawPacketEnd || sawGdoHigh)) {
+            break;
+        }
+        delayMicroseconds(120);
     }
-    const uint8_t state = ccReadLocked(kCcMarcState, true) & 0x1F;
-    const bool ok = state != kCcStateTxFifoUnderflow;
+
+    const uint8_t finalState = ccReadLocked(kCcMarcState, true) & 0x1F;
+    const bool fifoDrained = !underflow && ((lastTxBytes & 0x7FU) == 0U);
+    const bool strobeAccepted = stxStatus != 0xFF;
+    const bool verified = strobeAccepted && fifoDrained && sawGdoHigh;
+
+    g_status.cc1101LastTxVerified = verified;
     ccStrobeLocked(kCcSidle);
     ccStrobeLocked(kCcSftx);
-    return ok;
+
+    if (!verified) {
+        orionLogPrintf("RADIO", "CC TX verify fail stx=0x%02X gdo=%u end=%u bytes=0x%02X state=0x%02X",
+                       stxStatus,
+                       sawGdoHigh ? 1U : 0U,
+                       sawPacketEnd ? 1U : 0U,
+                       lastTxBytes,
+                       finalState);
+    }
+    return verified;
 }
+
 
 void radioManagerService() {
     const uint32_t now = millis();
