@@ -26,6 +26,7 @@ void stopNrfLocked() {
     g_nrfPassiveConfigured = false;
     g_nrfTxConfigured = false;
     g_nrfTxChannel = 0xFF;
+    g_status.nrfChannel = 0xFF;
     if (g_status.owner == RadioBusOwner::NrfPassive ||
         g_status.owner == RadioBusOwner::NrfPacketTx) {
         markOwnerLocked(RadioBusOwner::None);
