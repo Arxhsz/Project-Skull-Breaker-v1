@@ -42,7 +42,6 @@ struct RadioManagerStatus {
     uint8_t nrfChannel = 0xFF;
     float cc1101FrequencyMHz = 0.0f;
     bool cc1101LastTxVerified = false;
-    int cc1101LastRssiDbm = -127;
 };
 
 void radioManagerPrimeBus();
