@@ -29,8 +29,9 @@
     g_nrfPassiveConfigured = false;
     g_nrfTxConfigured = true;
     g_nrfTxChannel = channel;
+    g_status.nrfChannel = radio1.getChannel();
     markOwnerLocked(RadioBusOwner::NrfPacketTx);
-    return true;
+    return g_status.nrfChannel == channel;
 }
 
 bool radioManagerWriteNrfPacket(const void* payload, size_t length, uint8_t channel) {
@@ -43,7 +44,13 @@ bool radioManagerWriteNrfPacket(const void* payload, size_t length, uint8_t chan
     if (!lock.locked()) {
         return false;
     }
-    radio1.setChannel(constrain(channel, 0, 125));
+    const uint8_t requestedChannel = static_cast<uint8_t>(constrain(channel, 0, 125));
+    radio1.setChannel(requestedChannel);
+    g_status.nrfChannel = radio1.getChannel();
+    if (g_status.nrfChannel != requestedChannel) {
+        g_nrfTxConfigured = false;
+        return false;
+    }
     const bool ok = radio1.write(payload, static_cast<uint8_t>(length));
     if (!ok && !radio1.isChipConnected()) {
         g_status.nrfPresent = false;
@@ -52,6 +59,16 @@ bool radioManagerWriteNrfPacket(const void* payload, size_t length, uint8_t chan
         publishStatusLocked();
     }
     return ok;
+}
+
+uint8_t radioManagerNrfReadChannel() {
+    ensureMutex();
+    RecursiveLock lock;
+    if (!lock.locked() || !g_status.nrfPresent) {
+        return 0xFF;
+    }
+    g_status.nrfChannel = radio1.getChannel();
+    return g_status.nrfChannel;
 }
 
 void radioManagerStopNrf() {
